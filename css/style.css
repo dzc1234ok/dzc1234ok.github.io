@@ -1435,7 +1435,7 @@ html { scroll-behavior: smooth; }
 .hero { width: min(1180px, calc(100% - 48px)); min-height: 650px; margin: 0 auto; padding: 94px 0 80px; display: grid; grid-template-columns: 1fr .93fr; align-items: center; gap: 90px; }
 .eyebrow, .section-kicker { margin: 0 0 18px; color: var(--home-accent); font: 800 12px/1.2 ui-monospace, SFMono-Regular, Consolas, monospace; letter-spacing: .14em; }
 .eyebrow { display: flex; align-items: center; gap: 10px; }
-.eyebrow span { width: 28px; height: 2px; background: var(--home-accent); }
+.eyebrow-line { width: 28px; height: 2px; background: var(--home-accent); }
 .hero h1 { margin: 0; font-size: clamp(55px, 6.4vw, 86px); line-height: .98; letter-spacing: -.065em; }
 .hero h1 em { color: var(--home-accent); font-style: normal; }
 .hero-lead { max-width: 590px; margin: 30px 0 0; color: var(--home-muted); font-size: 18px; line-height: 1.85; }

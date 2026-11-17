@@ -1,0 +1,343 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>树莓派 3B 跑 Android 10：DSI 显示、触摸适配与 SD 卡整包 | 落地生根</title>
+  <meta name="description" content="记录 rpi3bdroid 最近的内核构建、DSI 显示、触摸轮询和 SD 卡整包修改，附提交链接与验证命令。显示已点亮，触摸仍待闭环。">
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="树莓派 3B 跑 Android 10：DSI 显示、触摸适配与 SD 卡整包">
+  <meta property="og:description" content="记录 rpi3bdroid 最近的内核构建、DSI 显示、触摸轮询和 SD 卡整包修改，附提交链接与验证命令。显示已点亮，触摸仍待闭环。">
+  <meta property="og:url" content="https://dzc1234ok.github.io/2026/11/17/rpi3-android10-bringup/">
+  <meta property="article:published_time" content="2026-11-17T14:00:00+08:00">
+  <link rel="canonical" href="https://dzc1234ok.github.io/2026/11/17/rpi3-android10-bringup/">
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/post.css">
+  <script>try { document.documentElement.dataset.theme = localStorage.getItem('theme') || 'light'; } catch (_) {}</script>
+</head>
+<body class="tech-home post-page">
+  <a class="skip-link" href="#main-content">跳到正文</a>
+  <header class="site-header">
+    <div class="nav-shell">
+      <a class="brand" href="/" aria-label="落地生根首页">
+        <span class="brand-mark" aria-hidden="true">&lt;/&gt;</span>
+        <span>落地生根</span>
+      </a>
+      <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="site-nav">
+        <span></span><span></span><span></span><span class="sr-only">打开导航</span>
+      </button>
+      <nav id="site-nav" class="site-nav" aria-label="主导航">
+        <a href="/">首页</a>
+        <a href="/#articles">文章</a>
+        <a href="/#topics">专题</a>
+        <a href="/archives/">归档</a>
+        <a href="/#about">关于</a>
+      </nav>
+      <button class="theme-toggle" type="button" aria-label="切换深色模式" title="切换深色模式">
+        <svg class="sun-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.66 6.34l1.41-1.41"/></svg>
+        <svg class="moon-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z"/></svg>
+      </button>
+    </div>
+  </header>
+  <main id="main-content" class="post-shell">
+    <div class="post-heading">
+      <a class="post-back" href="/#articles">← 返回文章列表</a>
+      <p class="section-kicker">ANDROID / LINUX / BSP</p>
+      <h1>树莓派 3B 跑 Android 10：DSI 显示、触摸适配与 SD 卡整包</h1>
+      <p class="post-byline"><time datetime="2026-11-17">2026 年 11 月 17 日</time> · Zengchao · rpi3bdroid 实践记录</p>
+      <p class="post-deck">记录 rpi3bdroid 最近的内核构建、DSI 显示、触摸轮询和 SD 卡整包修改，附提交链接与验证命令。显示已点亮，触摸仍待闭环。</p>
+      <div class="post-status"><span>显示已点亮</span><span>触摸调试中</span><span>整包脚本已入库</span></div>
+    </div>
+    <div class="post-layout">
+      <article class="post-body" aria-label="文章正文">
+<p>最近在 rpi3bdroid 中继续推进树莓派 3B 的 Android 10 bring-up。目标是把源码编译、屏幕适配和 SD 卡制作串起来，让每次修改都有对应的代码和验证入口。</p>
+<p>本文记录 2026 年 11 月 6 日至 15 日已提交到 GitHub 的修改，并整理目前的实机观察。<strong>当前阶段：DSI 显示已点亮，触摸仍有异常；整包脚本已经入库，但不能据此认定所有硬件功能都已验证完成。</strong></p>
+<h2 id="section-1">1. 基线与当前进展</h2>
+<div class="table-scroll" tabindex="0" role="region" aria-label="可横向滚动的数据表"><table>
+<thead>
+<tr>
+<th>项目</th>
+<th>本次使用的基线或状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>开发板</td>
+<td>Raspberry Pi 3B</td>
+</tr>
+<tr>
+<td>Android</td>
+<td>AOSP <code>android-10.0.0_r32</code></td>
+</tr>
+<tr>
+<td>内核</td>
+<td><code>kernel_rpi</code> 的 <code>arpi-4.19.y</code> 分支，4.19.108 基线</td>
+</tr>
+<tr>
+<td>屏幕</td>
+<td>Waveshare 5 英寸 DSI 触摸屏，800 × 480</td>
+</tr>
+<tr>
+<td>显示</td>
+<td>实机已显示 Android 界面；<code>wm size</code> 为 800 × 480</td>
+</tr>
+<tr>
+<td>触摸</td>
+<td>已出现 <code>generic ft5x06 (17)</code> 输入设备，但此前采集仍存在 X 变化、Y 未正常上报的现象，尚未闭环</td>
+</tr>
+<tr>
+<td>SD 卡制作</td>
+<td>新增 <code>make-sdcard-image.py</code>，生成带分区表的整盘 <code>.img</code></td>
+</tr>
+</tbody></table></div>
+<p>公开仓库沿用 android-rpi 项目的基础工作。本次新增内容集中在设备仓和内核仓，并通过 rpi3bdroid 组织持续记录。</p>
+<h2 id="section-2">2. 仓库组织与源码同步</h2>
+<p>涉及的仓库和分支如下。图形组件使用的分支名称与 Android 版本并不相同，应以 manifest 中逐项指定的 revision 为准。</p>
+<div class="table-scroll" tabindex="0" role="region" aria-label="可横向滚动的数据表"><table>
+<thead>
+<tr>
+<th>源码路径</th>
+<th>仓库</th>
+<th>分支</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>.repo/local_manifests</code></td>
+<td><a href="https://github.com/rpi3bdroid/local_manifests/tree/android10">local_manifests</a></td>
+<td><code>android10</code></td>
+</tr>
+<tr>
+<td><code>device/brcm/rpi3</code></td>
+<td><a href="https://github.com/rpi3bdroid/device_brcm_rpi3/tree/android10">device_brcm_rpi3</a></td>
+<td><code>android10</code></td>
+</tr>
+<tr>
+<td><code>kernel/rpi</code></td>
+<td><a href="https://github.com/rpi3bdroid/kernel_rpi/tree/arpi-4.19.y">kernel_rpi</a></td>
+<td><code>arpi-4.19.y</code></td>
+</tr>
+<tr>
+<td><code>hardware/rpi</code></td>
+<td><a href="https://github.com/rpi3bdroid/hardware_rpi/tree/android10">hardware_rpi</a></td>
+<td><code>android10</code></td>
+</tr>
+<tr>
+<td><code>external/mesa3d</code></td>
+<td><a href="https://github.com/rpi3bdroid/external_mesa3d/tree/rpi3-19.1">external_mesa3d</a></td>
+<td><code>rpi3-19.1</code></td>
+</tr>
+<tr>
+<td><code>external/drm_gralloc</code></td>
+<td><a href="https://github.com/rpi3bdroid/external_drm_gralloc/tree/rpi3-19.1">external_drm_gralloc</a></td>
+<td><code>rpi3-19.1</code></td>
+</tr>
+<tr>
+<td><code>vendor/arpi/RpLauncher</code></td>
+<td><a href="https://github.com/rpi3bdroid/RpLauncher/tree/android10">RpLauncher</a></td>
+<td><code>android10</code></td>
+</tr>
+</tbody></table></div>
+<p>记录时，<code>local_manifests/android10</code> 的 remote 指向本地 Gerrit。外部复现时，需要把工作副本中的 remote 改为 GitHub 组织地址。以下命令用于已经完成 AOSP <code>android-10.0.0_r32</code> 初始化、且尚未创建 <code>.repo/local_manifests</code> 的源码目录：</p>
+<pre><code class="language-bash">git clone --branch android10 \
+  https://github.com/rpi3bdroid/local_manifests.git .repo/local_manifests
+
+python3 - &lt;&lt;&#39;PY&#39;
+from pathlib import Path
+import xml.etree.ElementTree as ET
+
+manifest = Path(&#39;.repo/local_manifests/default.xml&#39;)
+tree = ET.parse(manifest)
+remote = tree.getroot().find(&quot;remote[@name=&#39;arpi&#39;]&quot;)
+if remote is None:
+    raise SystemExit(&#39;arpi remote not found&#39;)
+remote.set(&#39;fetch&#39;, &#39;https://github.com/rpi3bdroid/&#39;)
+remote.attrib.pop(&#39;review&#39;, None)
+tree.write(manifest, encoding=&#39;UTF-8&#39;, xml_declaration=True)
+PY
+
+repo sync -j4
+</code></pre>
+<p>如果已有 local manifest，先对照现有配置合并。上面的改动仅用于公开下载入口；后续同步和代码评审地址应按自己的环境维护。</p>
+<h2 id="section-3">3. 内核产物统一放到 KERNEL_OBJ</h2>
+<p>11 月 6 日的修改把内核构建改为独立输出目录：</p>
+<pre><code class="language-text">out/target/product/rpi3/KERNEL_OBJ/
+</code></pre>
+<p>这样，<code>zImage</code>、DTB 和 overlay 都有明确的产物路径，整包脚本也可以从同一个位置取文件。对应提交：<a href="https://github.com/rpi3bdroid/device_brcm_rpi3/commit/1952684cea1c99c953e40fba7051e2ec5ea6cce2">1952684</a>。</p>
+<p>从 Android 源码根目录开始：</p>
+<pre><code class="language-bash">sudo apt install gcc-arm-linux-gnueabihf libssl-dev
+cd kernel/rpi
+KERNEL_OBJ=$(realpath -m ../../out/target/product/rpi3/KERNEL_OBJ)
+mkdir -p &quot;$KERNEL_OBJ&quot;
+
+ARCH=arm scripts/kconfig/merge_config.sh -O &quot;$KERNEL_OBJ&quot; \
+  arch/arm/configs/bcm2709_defconfig \
+  kernel/configs/android-base.config \
+  kernel/configs/android-recommended.config
+
+ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- \
+  make O=&quot;$KERNEL_OBJ&quot; -j4 zImage dtbs
+cd ../..
+</code></pre>
+<p>这里仍然构建 ARM 32 位内核，不能仅因为板上 CPU 支持 ARM64，就把命令中的 <code>ARCH=arm</code> 改为 <code>arm64</code>。同时，需要核对合并后实际生效的 <code>.config</code>：</p>
+<pre><code class="language-bash">rg -n &#39;CONFIG_(DRM_VC4|DRM_PANEL_RASPBERRYPI_TOUCHSCREEN|TOUCHSCREEN_EDT_FT5X06)=&#39; \
+  out/target/product/rpi3/KERNEL_OBJ/.config
+</code></pre>
+<p>本次 defconfig 将面板驱动和 EDT 触摸驱动由模块改为内建，预期上述三项均为 <code>y</code>。</p>
+<p>Android 部分继续使用项目原来的产品配置：</p>
+<pre><code class="language-bash">source build/envsetup.sh
+lunch rpi3-eng
+make -j4 ramdisk systemimage vendorimage
+</code></pre>
+<p>这组命令用于已配置好的 AOSP 构建环境，主机依赖仍需要按实际发行版准备。</p>
+<h2 id="section-4">4. DSI 显示：把固件配置与内核拓扑对齐</h2>
+<p>设备仓 <code>boot/config.txt</code> 新增：</p>
+<pre><code class="language-ini">ignore_lcd=1
+# Linux edt-ft5x06 owns the touch controller.
+disable_touchscreen=1
+</code></pre>
+<p>这套配置配合 Linux VC4 KMS 和 EDT 驱动使用，意图是由内核接管显示、触摸，避免固件侧旧路径参与控制。<code>disable_touchscreen=1</code> 在这里不代表关闭 Linux EDT 输入驱动。</p>
+<p>内核设备树同时做了几项调整：</p>
+<ul>
+<li><code>i2c0</code> 使用 <code>i2c0_gpio44</code> 引脚组，配置为 100 kHz 并启用。</li>
+<li>增加 I²C 地址 <code>0x45</code> 的面板节点，使用 <code>raspberrypi,7inch-touchscreen-panel</code> compatible。</li>
+<li>启用 <code>dsi1</code>，用互相对应的 endpoint 连接 DSI 与面板。</li>
+<li>增加地址 <code>0x38</code> 的触摸节点。</li>
+</ul>
+<p>这里的 compatible 是本次复用的驱动绑定名称，不表示实物屏幕是 7 英寸。</p>
+<p>Android 产品配置还删除了 <code>debug.drm.mode.force=1280x720</code>，让 DRM 按实际输出模式工作。实机调试时，<code>wm size</code> 已返回：</p>
+<pre><code class="language-text">Physical size: 800x480
+</code></pre>
+<p><strong>固件 ID 的处理仍属于诊断阶段。</strong> 这块面板曾返回 <code>0x01</code>，原驱动不接受该值。本次在 <code>panel-raspberrypi-touchscreen.c</code> 增加 <code>case 0x01</code>，并打印：</p>
+<pre><code class="language-text">diagnostic: accepting panel firmware ID 0x01
+</code></pre>
+<p>这项修改允许继续验证后续链路，不能单凭“probe 通过”认定协议与上电时序完全兼容，也不能推广成所有同类屏幕的通用修复。</p>
+<p>早期日志还出现过 <code>vc4-drm ... failed to bind ... dsi ... -517</code>。排查时要看最终的组件绑定与显示结果，不能把中间一次延迟探测直接当成最终故障结论。</p>
+<h2 id="section-5">5. 触摸：增加轮询路径，继续核对数据与事件</h2>
+<p>当前触摸设备树配置的核心部分为：</p>
+<pre><code class="language-dts">touchscreen@38 {
+    compatible = &quot;edt,edt-ft5506&quot;;
+    reg = &lt;0x38&gt;;
+    poll-interval = &lt;17&gt;;
+    touchscreen-size-x = &lt;800&gt;;
+    touchscreen-size-y = &lt;480&gt;;
+    touchscreen-inverted-x;
+    touchscreen-inverted-y;
+};
+</code></pre>
+<p><code>edt-ft5x06.c</code> 为无 IRQ 配置增加了 delayed work 轮询。当前设备树设置 17 ms 间隔；这是调度间隔配置，不是对触摸采样率的实测承诺。驱动限制轮询值为 10–1000 ms，并拒绝同时配置 IRQ 和轮询的情况。</p>
+<p>数据处理也有同步调整：先读取头部中的触点数量，再读取对应触点数据；增加启动残留数据过滤、触点 ID 范围检查，以及对当前帧中消失的触点补报释放。挂起、恢复、工厂模式切换和卸载路径同步处理轮询工作的启停。</p>
+<p>为继续定位问题，前 10 次数据处理会打印 <code>touch-diag</code>，包含读取返回值、原始字节、触点数量和解析得到的 X/Y 等信息。这些诊断记录有次数限制，后续抓取时应从启动阶段开始采集。</p>
+<p><strong>目前仍待解决的是触摸事件异常。</strong> 已注册输入节点，只说明输入设备创建成功；此前 <code>getevent</code> 中存在 X 变化而 Y 未正常上报的现象，还需要把控制器原始数据、驱动解析结果和 input 事件对齐。当前证据不足以认定是坐标反转、Android 输入映射或控制器协议中的哪一层导致。</p>
+<p>下一轮验证只收集与这条链路直接有关的数据。以下命令在有 ADB 和 <code>rg</code> 的 Linux 主机执行：</p>
+<pre><code class="language-bash">adb shell dmesg | rg -i &#39;touch-diag|touch polling|ft5|firmware|vc4|dsi&#39;
+adb shell getevent -lp
+# 根据上一条输出确认触摸设备节点；event0 仅为本次调试时的编号
+adb shell getevent -lt /dev/input/event0
+adb shell dumpsys input
+</code></pre>
+<p>手指分别做水平、竖直移动，再检查原始帧和 input 事件是否都随两轴变化。单帧没有重复出现 Y 事件，并不足以说明 Y 一定丢失；应结合持续竖直移动的记录判断。只有连续移动、点击、抬起及坐标方向都通过，才能把触摸标记为完成。</p>
+<h2 id="section-6">6. 把编译产物打成可直接刷写的 SD 卡镜像</h2>
+<p>此前需要手工分区、格式化和复制 BOOT 文件，再分别写入 system、vendor。新增脚本把这些步骤集中到源码树内：</p>
+<pre><code class="language-bash">sudo apt install fdisk dosfstools mtools e2fsprogs
+python3 device/brcm/rpi3/make-sdcard-image.py
+</code></pre>
+<p>脚本本身不需要 root。默认从 <code>KERNEL_OBJ</code> 取本次构建的 <code>zImage</code>、DTB 和 <code>vc4-kms-v3d.dtbo</code>，再加上设备仓的启动文件与 Android 的 ramdisk、system、vendor，组成 MBR 整盘镜像。</p>
+<p>默认布局采用 MiB 单位：</p>
+<div class="table-scroll" tabindex="0" role="region" aria-label="可横向滚动的数据表"><table>
+<thead>
+<tr>
+<th>区域</th>
+<th align="right">起始位置（MiB）</th>
+<th align="right">大小（MiB）</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>分区前保留区域</td>
+<td align="right">0</td>
+<td align="right">1</td>
+<td>MBR 与分区对齐</td>
+</tr>
+<tr>
+<td>BOOT</td>
+<td align="right">1</td>
+<td align="right">256</td>
+<td>FAT32，启动固件、内核、DTB、ramdisk</td>
+</tr>
+<tr>
+<td>system</td>
+<td align="right">257</td>
+<td align="right">640</td>
+<td>Android system 镜像</td>
+</tr>
+<tr>
+<td>vendor</td>
+<td align="right">897</td>
+<td align="right">128</td>
+<td>Android vendor 镜像</td>
+</tr>
+<tr>
+<td>userdata</td>
+<td align="right">1025</td>
+<td align="right">3071</td>
+<td>新建 ext4，卷标 <code>userdata</code></td>
+</tr>
+<tr>
+<td>合计</td>
+<td align="right">—</td>
+<td align="right">4096</td>
+<td>整盘镜像逻辑大小</td>
+</tr>
+</tbody></table></div>
+<p>脚本会检查产物存在性、system/vendor 大小和 Android sparse 镜像标识。<strong>遇到 Android sparse 输入会退出并提示先用 <code>simg2img</code> 转换，当前没有自动转换功能。</strong> 输出文件保留全零块的文件空洞，与 Android sparse 镜像格式是两回事；复制或压缩后占用空间可能变化，刷卡仍按完整逻辑大小计算。</p>
+<p>脚本包含 FAT/ext4 文件系统检查、BOOT 文件回读比对、写入分区数据的 SHA-256 比对和分区表校验。完成后输出：</p>
+<pre><code class="language-text">out/target/product/rpi3/rpi3-android10-sdcard.img
+out/target/product/rpi3/rpi3-android10-sdcard.img.sha256
+out/target/product/rpi3/rpi3-android10-sdcard.img.layout.json
+</code></pre>
+<p>复制镜像后可以在其所在目录验证：</p>
+<pre><code class="language-bash">cd out/target/product/rpi3
+sha256sum -c rpi3-android10-sdcard.img.sha256
+</code></pre>
+<p>这些检查验证的是打包数据的一致性，实际启动和硬件功能还需要上板验证。打包使用新建的空 userdata，不会保留之前 SD 卡中的用户数据。</p>
+<h3>为什么默认整包不能写进标称 4 GB 的卡？</h3>
+<p>默认镜像为 <code>4096 MiB = 4,294,967,296</code> 字节，而标称 4 GB 的卡通常约为 <code>4,000,000,000</code> 字节，容量小于整包的逻辑大小。即使镜像文件在主机上因空洞或压缩占用更小，也不能据此判断能写入。</p>
+<p>当前默认整包使用 <strong>8 GB 或更大的 SD 卡</strong>。脚本支持 <code>--size-mib</code> 和 <code>--output</code> 自定义，但缩小会减少 userdata；参数被接受也不代表该容量已完成上板验证。</p>
+<p>刷写时，在 Raspberry Pi Imager 中选择“Use custom／使用自定义镜像”，选择生成的 <code>.img</code>，核对目标 SD 卡后写入。写入会覆盖卡上原有数据。当前脚本不会自动把 userdata 扩展到更大卡的剩余空间。</p>
+<h2 id="section-7">7. Android 产品配置中的其余改动</h2>
+<p>同一次设备仓提交还显式加入 <code>Settings</code> 包，并把 Pi 3B 使用的 <code>brcmfmac43430-sdio.bin</code> 与 <code>.txt</code> 加入 ramdisk 的固件复制目标。这些属于包与固件布置的修改；Wi-Fi 是否连接稳定、设置项是否完整可用，仍应分别实测。</p>
+<h2 id="section-8">8. 对应提交与下一步</h2>
+<div class="table-scroll" tabindex="0" role="region" aria-label="可横向滚动的数据表"><table>
+<thead>
+<tr>
+<th>提交</th>
+<th>主要内容</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><a href="https://github.com/rpi3bdroid/device_brcm_rpi3/commit/1952684cea1c99c953e40fba7051e2ec5ea6cce2">1952684 · build kernel</a></td>
+<td>内核独立输出目录与文档路径统一</td>
+</tr>
+<tr>
+<td><a href="https://github.com/rpi3bdroid/device_brcm_rpi3/commit/740f83507ee3dad7c8c29165d715b35adb76a07d">740f835 · boot bringup [1]</a></td>
+<td>SD 卡整包脚本、固件启动配置、DRM 模式与产品配置</td>
+</tr>
+<tr>
+<td><a href="https://github.com/rpi3bdroid/kernel_rpi/commit/c115a20e14d09dc47b9f1d72de586ad4de80bb55">c115a20 · boot bringup [2]</a></td>
+<td>DSI/触摸设备树、驱动内建、面板 ID 诊断兼容与触摸轮询</td>
+</tr>
+</tbody></table></div>
+<p>下一步先闭环触摸的 X/Y 与触点释放问题，再验证重启、休眠恢复和连续操作，随后记录整包刷写后的完整启动结果。每一项都以实际日志和操作结果更新状态。</p>
+<p>相关入口：<a href="https://github.com/rpi3bdroid">rpi3bdroid 组织</a> · <a href="https://github.com/rpi3bdroid/device_brcm_rpi3/blob/740f83507ee3dad7c8c29165d715b35adb76a07d/README">设备仓说明</a> · <a href="https://github.com/rpi3bdroid/device_brcm_rpi3/blob/740f83507ee3dad7c8c29165d715b35adb76a07d/make-sdcard-image.py">整包脚本源码</a></p>
+
+        <div class="post-end"><a href="article.md">查看 Markdown 原文</a><a href="/#articles">返回文章列表 ↑</a></div>
+      </article>
+      <aside class="post-toc" aria-label="文章目录"><nav><h2>本文目录</h2><ol><li><a href="#section-1">基线与当前进展</a></li><li><a href="#section-2">仓库组织与源码同步</a></li><li><a href="#section-3">内核产物统一放到 KERNEL_OBJ</a></li><li><a href="#section-4">DSI 显示：把固件配置与内核拓扑对齐</a></li><li><a href="#section-5">触摸：增加轮询路径，继续核对数据与事件</a></li><li><a href="#section-6">把编译产物打成可直接刷写的 SD 卡镜像</a></li><li><a href="#section-7">Android 产品配置中的其余改动</a></li><li><a href="#section-8">对应提交与下一步</a></li></ol><a class="post-source" href="https://github.com/rpi3bdroid">GitHub · rpi3bdroid ↗</a></nav></aside>
+    </div>
+  </main>
+  <footer class="site-footer">
+    <div><a class="brand" href="/"><span class="brand-mark">&lt;/&gt;</span><span>落地生根</span></a><p>用代码解决问题，用文字记录成长。</p></div>
+    <p>© <span id="current-year">2026</span> dzc1234ok · Built with curiosity.</p>
+  </footer>
+  <script src="/js/post.js"></script>
+</body>
+</html>

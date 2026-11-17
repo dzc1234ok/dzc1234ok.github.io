@@ -56,6 +56,10 @@
     }
   };
 
+  Object.assign(translations["zh-CN"], {"rpi.tag":"Android / BSP","rpi.title":"树莓派 3B Android 10：显示、触摸与 SD 卡整包","rpi.summary":"记录 rpi3bdroid 最近的内核构建、DSI 显示、触摸轮询和 SD 卡整包修改，附提交链接与验证命令。显示已点亮，触摸仍待闭环。","rpi.label":"阅读文章：树莓派 3B Android 10 适配记录"});
+  Object.assign(translations["zh-TW"], {"rpi.tag":"Android / BSP","rpi.title":"樹莓派 3B Android 10：顯示、觸控與 SD 卡整包（簡體中文）","rpi.summary":"記錄 rpi3bdroid 最近的核心建置、DSI 顯示、觸控輪詢與 SD 卡整包修改，附提交連結與驗證指令。顯示已點亮，觸控仍待解決。","rpi.label":"閱讀簡體中文文章：樹莓派 3B Android 10 適配記錄"});
+  Object.assign(translations["en"], {"rpi.tag":"Android / BSP","rpi.title":"Android 10 on Raspberry Pi 3B: DSI, Touch and SD Images (Chinese)","rpi.summary":"Recent rpi3bdroid changes to kernel builds, DSI display, touch polling and SD images, with commits and verification commands. Display is working; touch is still under investigation. Article in Chinese.","rpi.label":"Read Chinese article: Android 10 bring-up on Raspberry Pi 3B"});
+
   var currentLanguage = 'zh-CN';
 
   function applyLanguage(language) {
@@ -121,3 +125,4 @@
   var browserLanguage = navigator.language === 'zh-TW' || navigator.language === 'zh-HK' ? 'zh-TW' : (navigator.language.indexOf('zh') === 0 ? 'zh-CN' : 'en');
   applyLanguage(savedLanguage || browserLanguage);
 }());
+

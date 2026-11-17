@@ -1,0 +1,38 @@
+.post-shell { width: min(1120px, calc(100% - 48px)); margin: 0 auto; padding: 52px 0 88px; }
+.post-heading { max-width: 900px; margin-bottom: 48px; }
+.post-back { display: inline-block; margin-bottom: 36px; color: var(--home-muted) !important; font-size: 13px; }
+.post-heading h1 { margin: 0; font-size: clamp(29px, 4.2vw, 48px); letter-spacing: -.04em; line-height: 1.35; overflow-wrap: anywhere; }
+.post-byline { margin: 20px 0 12px; color: var(--home-muted); font-size: 13px; }
+.post-deck { margin: 18px 0; color: var(--home-muted); font-size: 17px; line-height: 1.9; }
+.post-status { display: flex; flex-wrap: wrap; gap: 8px; }
+.post-status span { padding: 5px 10px; border: 1px solid var(--home-line); border-radius: 5px; font-size: 12px; background: var(--home-surface); }
+.post-status span:first-child { color: #23634f; background: #d9f2e7; border-color: #b7dccc; }
+.post-status span:nth-child(2) { color: #795211; background: #fff1d4; border-color: #eed49c; }
+.post-layout { display: grid; grid-template-columns: minmax(0, 800px) 250px; gap: 60px; align-items: start; }
+.post-body { min-width: 0; font-size: 16px; line-height: 1.95; overflow-wrap: anywhere; }
+.post-body > p:first-child { margin-top: 0; }
+.post-body h2 { margin: 52px 0 20px; padding-top: 18px; border-top: 1px solid var(--home-line); font-size: 25px; line-height: 1.5; letter-spacing: -.025em; scroll-margin-top: 98px; }
+.post-body h3 { margin: 34px 0 16px; font-size: 20px; line-height: 1.5; }
+.post-body p, .post-body ul, .post-body ol { margin: 18px 0; }
+.post-body ul, .post-body ol { padding-left: 1.5em; list-style: revert; }
+.post-body li { margin: 8px 0; }
+.post-body a { color: var(--home-accent); text-decoration: underline; text-underline-offset: 3px; }
+.post-body pre { margin: 24px 0; padding: 20px; background: var(--home-surface-soft); color: var(--home-ink); border: 1px solid var(--home-line); border-radius: 9px; overflow-x: auto; font: 13px/1.8 ui-monospace, SFMono-Regular, Consolas, monospace; white-space: pre; }
+.post-body code { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: .87em; }
+.post-body :not(pre) > code { padding: 2px 5px; border-radius: 4px; background: var(--home-surface-soft); }
+.post-body pre code { padding: 0; background: none; font-size: inherit; }
+.table-scroll { margin: 24px 0; overflow-x: auto; border: 1px solid var(--home-line); border-radius: 8px; }
+.post-body table { margin: 0; width: 100%; border-collapse: collapse; font-size: 13px; }
+.post-body th, .post-body td { padding: 12px 14px; border: 0; border-bottom: 1px solid var(--home-line); vertical-align: top; text-align: left; min-width: 100px; }
+.post-body th { color: var(--home-ink); background: var(--home-surface-soft); font-weight: 700; }
+.post-body tr:last-child td { border-bottom: 0; }
+.post-toc { position: sticky; top: 106px; font-size: 12px; line-height: 1.7; }
+.post-toc h2 { margin: 0 0 16px; font-size: 13px; }
+.post-toc ol { margin: 0; padding: 0 0 0 18px; list-style: decimal; color: var(--home-muted); }
+.post-toc li { margin: 12px 0; padding-left: 2px; }
+.post-toc a:hover { color: var(--home-accent); }
+.post-source { display: block; margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--home-line); }
+.post-end { display: flex; flex-wrap: wrap; gap: 24px; justify-content: space-between; margin-top: 48px; padding-top: 24px; border-top: 1px solid var(--home-line); font-size: 13px; }
+@media (max-width: 1000px) { .post-layout { grid-template-columns: minmax(0, 1fr); gap: 24px; } .post-toc { position: static; grid-row: 1; padding: 20px 24px; border: 1px solid var(--home-line); border-radius: 8px; } .post-toc ol { columns: 2; column-gap: 30px; } .post-toc li { break-inside: avoid; } }
+@media (max-width: 680px) { .post-shell { width: calc(100% - 32px); padding-top: 30px; } .post-heading { margin-bottom: 28px; } .post-back { margin-bottom: 26px; } .post-deck { font-size: 15px; } .post-byline { font-size: 12px; } .post-body { font-size: 15px; } .post-body h2 { font-size: 22px; margin-top: 38px; } .post-body pre { padding: 16px; font-size: 12px; } .post-toc ol { columns: 1; } }
+@media print { .site-header, .post-toc, .site-footer, .post-back, .post-end { display: none; } .post-shell { width: 100%; padding: 0; } .post-layout { display: block; } .post-body pre { white-space: pre-wrap; } .post-body pre, .table-scroll { overflow: visible; } }
